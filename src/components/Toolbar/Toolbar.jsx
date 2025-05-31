@@ -1,6 +1,5 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef } from 'react';
 import { WhiteboardContext } from '../../context/WhiteboardContext';
-import { getSocket } from '../../services/socket';
 import ImageTool from '../../tools/ImageTool';
 import ColorPalette from '../ColorPalette/ColorPalette.jsx';
 import StrokePalette from '../StrokePalette/StrokePalette.jsx';
@@ -20,54 +19,12 @@ const Toolbar = () => {
   
   const fileInputRef = useRef(null);
   const toolInstances = useRef({});
-  const [socketConnected, setSocketConnected] = useState(false);
   
   useEffect(() => {
     toolInstances.current = {
       image: new ImageTool(context)
     };
   }, [context]);
-  
-  useEffect(() => {
-    const socket = getSocket();
-    
-    const updateConnectionStatus = () => {
-      setSocketConnected(socket.connected);
-    };
-    
-    socket.on('connect', updateConnectionStatus);
-    socket.on('disconnect', updateConnectionStatus);
-    socket.on('reconnect', updateConnectionStatus);
-    
-    // Initial status
-    updateConnectionStatus();
-    
-    return () => {
-      socket.off('connect', updateConnectionStatus);
-      socket.off('disconnect', updateConnectionStatus);
-      socket.off('reconnect', updateConnectionStatus);
-    };
-  }, []);
-  
-  const testSocketConnection = () => {
-    const socket = getSocket();
-    console.log('🧪 Testing socket connection...');
-    console.log('Socket connected?', socket.connected);
-    console.log('Socket ID:', socket.id);
-    
-    if (socket.connected) {
-      // Test emit
-      socket.emit('element-update', {
-        type: 'test',
-        message: 'Test message from client',
-        timestamp: Date.now(),
-        userId: 'test-user'
-      });
-      console.log('✅ Test message emitted');
-    } else {
-      console.error('❌ Socket not connected');
-    }
-  };
   
   const handleImageUpload = () => {
     fileInputRef.current.click();
@@ -87,33 +44,6 @@ const Toolbar = () => {
   
   return (
     <div className="toolbar">
-      <div className="tool-group">
-        <div 
-          className="connection-status"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            padding: '5px 10px',
-            backgroundColor: socketConnected ? '#28a745' : '#dc3545',
-            color: 'white',
-            borderRadius: '4px',
-            fontSize: '12px',
-            marginRight: '10px'
-          }}
-        >
-          <div 
-            style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: 'white',
-              marginRight: '5px'
-            }}
-          />
-          {socketConnected ? 'RTC Connected' : 'RTC Disconnected'}
-        </div>
-      </div>
-      
       <div className="tool-group">
         <button 
           className={`tool-button ${tool === 'pen' ? 'active' : ''}`}
@@ -226,15 +156,6 @@ const Toolbar = () => {
           title="Clear Page"
         >
           <i className="fas fa-trash"></i>
-        </button>
-        
-        <button 
-          className="tool-button"
-          onClick={testSocketConnection}
-          title="Test Socket Connection"
-          style={{ backgroundColor: '#007bff', color: 'white' }}
-        >
-          🧪 Test RTC
         </button>
       </div>
     </div>
