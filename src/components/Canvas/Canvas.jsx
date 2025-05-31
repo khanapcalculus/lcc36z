@@ -332,7 +332,6 @@ const Canvas = () => {
         y={position.y}
         listening={true}
         preventDefault={false}
-        style={{ backgroundColor: 'rgba(0, 255, 0, 0.1)' }}
       >
         <Layer 
           ref={layerRef}
