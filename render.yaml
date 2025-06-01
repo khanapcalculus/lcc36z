@@ -1,22 +1,31 @@
 services:
   # Backend web service
   - type: web
-    name: rtc-whiteboard
+    name: lcc360-whiteboard-backend
     env: node
     plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    buildCommand: npm install
+    startCommand: node server/index.js
     envVars:
       - key: NODE_ENV
         value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
       - key: CLIENT_URL
         sync: false
-    healthCheckPath: /
+      - key: PORT
+        value: 10000
+    healthCheckPath: /api/health
     autoDeploy: true
-    # GitHub repository configuration
-    repo: https://github.com/khanapcalculus/lccpi
-    branch: main
+
+  # Frontend static site
+  - type: static
+    name: lcc360-whiteboard-frontend
     buildCommand: npm install && npm run build
-    startCommand: node server/index.js
+    staticPublishPath: ./build
     envVars:
-      - key: NODE
+      - key: REACT_APP_API_URL
+        sync: false
+    autoDeploy: true

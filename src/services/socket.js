@@ -5,7 +5,7 @@ let socket;
 export const initSocket = () => {
   const serverUrl = process.env.NODE_ENV === 'production' 
     ? window.location.origin  // Use same origin in production
-    : 'http://192.168.31.158:5000';
+    : 'http://192.168.31.158:5001';
     
   console.log('Initializing socket connection to:', serverUrl);
     

@@ -1,0 +1,357 @@
+.whiteboard-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #f8f9fa;
+}
+
+/* Session Join Overlay */
+.session-join-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.join-status {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.join-status h3 {
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.session-info {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+}
+
+.session-info h4 {
+  margin: 0 0 10px 0;
+  color: #007bff;
+  font-size: 1.2rem;
+}
+
+.session-info p {
+  margin: 5px 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Password Prompt */
+.password-prompt {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.password-prompt h3 {
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.password-prompt p {
+  margin-bottom: 20px;
+  color: #666;
+}
+
+.password-prompt input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 16px;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+}
+
+.password-prompt input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* Error State */
+.error-state {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.error-state h3 {
+  margin-bottom: 15px;
+  color: #dc3545;
+  font-size: 1.5rem;
+}
+
+.error-message {
+  color: #dc3545;
+  background: #f8d7da;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  border: 1px solid #f5c6cb;
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.form-actions .btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #545b62;
+  transform: translateY(-1px);
+}
+
+/* Join Prompt */
+.join-prompt {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.join-prompt h3 {
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.join-prompt p {
+  margin-bottom: 20px;
+  color: #666;
+}
+
+.session-description {
+  font-style: italic;
+  color: #888 !important;
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 6px;
+  margin-top: 10px !important;
+}
+
+.btn-large {
+  padding: 15px 30px !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  min-width: 150px !important;
+}
+
+/* Mobile and Tablet Responsive Design */
+@media (max-width: 768px) {
+  .session-join-overlay {
+    padding: 15px;
+  }
+  
+  .join-status,
+  .password-prompt,
+  .error-state {
+    padding: 20px;
+    margin: 10px;
+  }
+  
+  .join-status h3,
+  .password-prompt h3,
+  .error-state h3 {
+    font-size: 1.3rem;
+  }
+  
+  .password-prompt input {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 15px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions .btn {
+    width: 100%;
+    padding: 15px;
+    font-size: 16px;
+  }
+  
+  .join-prompt {
+    padding: 25px;
+    margin: 15px;
+  }
+  
+  .join-prompt h3 {
+    font-size: 1.4rem;
+  }
+  
+  .btn-large {
+    width: 100% !important;
+    padding: 18px !important;
+    font-size: 16px !important;
+    margin-bottom: 10px !important;
+  }
+}
+
+/* Tablet specific adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .session-join-overlay {
+    padding: 20px;
+  }
+  
+  .join-status,
+  .password-prompt,
+  .error-state {
+    max-width: 500px;
+    padding: 35px;
+  }
+  
+  .password-prompt input {
+    padding: 15px;
+    font-size: 16px;
+  }
+  
+  .form-actions .btn {
+    padding: 12px 25px;
+    font-size: 15px;
+  }
+  
+  .join-prompt {
+    max-width: 600px;
+    padding: 40px;
+  }
+  
+  .btn-large {
+    padding: 16px 35px !important;
+    font-size: 17px !important;
+  }
+}
+
+/* Touch-friendly improvements */
+@media (pointer: coarse) {
+  .form-actions .btn {
+    min-height: 44px; /* Apple's recommended touch target size */
+    padding: 12px 20px;
+  }
+  
+  .password-prompt input {
+    min-height: 44px;
+    padding: 12px 15px;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .session-join-overlay {
+    backdrop-filter: blur(5px);
+  }
+  
+  .join-status,
+  .password-prompt,
+  .error-state {
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Debug info panel */
+.debug-info {
+  margin: 15px 0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #f8f9fa;
+}
+
+.debug-info summary {
+  padding: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  user-select: none;
+}
+
+.debug-info summary:hover {
+  background: #e9ecef;
+}
+
+.debug-content {
+  padding: 10px;
+  border-top: 1px solid #ddd;
+  font-size: 12px;
+  font-family: monospace;
+  background: #fff;
+}
+
+.debug-content p {
+  margin: 5px 0;
+  color: #333;
+}
+
+.debug-content strong {
+  color: #007bff;
+  min-width: 120px;
+  display: inline-block;
+}
+
+/* Modal loading state */
+.modal-loading {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-style: italic;
+} 

@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef, useEffect } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { WhiteboardContext } from '../../context/WhiteboardContext';
 import './ColorPalette.css';
 
@@ -42,9 +42,21 @@ const ColorPalette = () => {
       <button 
         className="color-button"
         onClick={togglePalette}
-        style={{ backgroundColor: color }}
+        title={`Current Color: ${color}`}
       >
-        <span className="color-indicator" style={{ backgroundColor: color }}></span>
+        <div 
+          className="color-dot" 
+          style={{ 
+            backgroundColor: color,
+            width: '20px',
+            height: '20px',
+            borderRadius: '50%',
+            border: color === '#FFFFFF' ? '2px solid #ccc' : '2px solid transparent',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        />
       </button>
       
       {isOpen && (

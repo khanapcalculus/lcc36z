@@ -62,5 +62,15 @@ export default class EraserTool {
   onMouseUp() {
     this.isErasing = false;
     this.context.setIsDrawing(false);
+    
+    // Flush batch to ensure final erasing state is sent immediately
+    if (this.context.flushBatch) {
+      this.context.flushBatch();
+    }
+    
+    // Save to history when erasing is complete
+    if (this.context.saveToHistory) {
+      this.context.saveToHistory();
+    }
   }
 }
