@@ -11,6 +11,9 @@ export const useWhiteboard = () => {
   return context;
 };
 
+// Export the context directly for components that need it
+export { WhiteboardContext };
+
 export const WhiteboardProvider = ({ children }) => {
   const [tool, setTool] = useState('pen');
   const [color, setColor] = useState('#000000');
