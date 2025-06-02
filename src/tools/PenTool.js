@@ -87,6 +87,11 @@ export default class PenTool {
     this.points = [];
     this.context.setIsDrawing(false);
     
+    // Flush batch to ensure final drawing state is sent immediately
+    if (this.context.flushBatch) {
+      this.context.flushBatch();
+    }
+    
     // Save to history when drawing is complete
     if (this.context.saveToHistory) {
       this.context.saveToHistory();

@@ -49,6 +49,12 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('element-update', data);
   });
   
+  // Handle batched updates
+  socket.on('element-batch-update', (data) => {
+    console.log('Received element-batch-update:', data.updates.length, 'updates from user:', data.userId);
+    socket.broadcast.emit('element-batch-update', data);
+  });
+  
   socket.on('page-change', (data) => {
     console.log('Received page-change from user:', data.userId);
     socket.broadcast.emit('page-change', data);

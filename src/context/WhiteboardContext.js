@@ -19,6 +19,51 @@ export const WhiteboardProvider = ({ children }) => {
   
   const socket = useRef(null);
   const userId = useRef(uuidv4());
+  
+  // Batching optimization
+  const batchQueue = useRef(new Map());
+  const batchTimeout = useRef(null);
+  const BATCH_DELAY = 50; // 50ms batching delay
+
+  // Function to emit batched updates
+  const emitBatchedUpdates = () => {
+    if (batchQueue.current.size === 0) return;
+    
+    const updates = Array.from(batchQueue.current.values());
+    console.log('WhiteboardContext: Emitting batched updates:', updates.length, 'updates');
+    
+    if (socket.current && socket.current.connected) {
+      socket.current.emit('element-batch-update', {
+        updates,
+        userId: userId.current
+      });
+    }
+    
+    batchQueue.current.clear();
+    batchTimeout.current = null;
+  };
+
+  // Function to add update to batch
+  const addToBatch = (updateData) => {
+    // Use element ID as key to ensure only latest update per element is kept
+    const key = updateData.element ? updateData.element.id : `${updateData.type}-${updateData.page}`;
+    batchQueue.current.set(key, updateData);
+    
+    // Clear existing timeout and set new one
+    if (batchTimeout.current) {
+      clearTimeout(batchTimeout.current);
+    }
+    
+    batchTimeout.current = setTimeout(emitBatchedUpdates, BATCH_DELAY);
+  };
+
+  // Function to force emit batch immediately (for important operations)
+  const flushBatch = () => {
+    if (batchTimeout.current) {
+      clearTimeout(batchTimeout.current);
+    }
+    emitBatchedUpdates();
+  };
 
   useEffect(() => {
     console.log('WhiteboardContext: Initializing socket connection...');
@@ -56,6 +101,19 @@ export const WhiteboardProvider = ({ children }) => {
           updateElementsFromSocket(data);
         } else {
           console.log('WhiteboardContext: Ignoring own element update');
+        }
+      });
+
+      // Handle batched updates
+      socket.current.on('element-batch-update', (data) => {
+        console.log('WhiteboardContext: Received element-batch-update:', data.updates.length, 'updates');
+        if (data.userId !== userId.current) {
+          console.log('WhiteboardContext: Processing batched updates from another user');
+          data.updates.forEach(update => {
+            updateElementsFromSocket(update);
+          });
+        } else {
+          console.log('WhiteboardContext: Ignoring own batched updates');
         }
       });
 
@@ -213,7 +271,7 @@ export const WhiteboardProvider = ({ children }) => {
       setHistory(newHistory);
       setHistoryIndex(newHistory.length - 1);
       
-      // Emit to socket
+      // Emit to socket (immediate for add operations)
       if (socket.current) {
         console.log('WhiteboardContext: Emitting element-update to socket');
         console.log('WhiteboardContext: Socket connected?', socket.current.connected);
@@ -256,10 +314,10 @@ export const WhiteboardProvider = ({ children }) => {
       
       // Don't add to history during drawing - only when drawing is complete
       
-      // Emit to socket
+      // Add to batch instead of immediate emit
       if (socket.current && socket.current.connected) {
-        console.log('WhiteboardContext: Emitting element update to socket:', updatedElement.id);
-        socket.current.emit('element-update', {
+        console.log('WhiteboardContext: Adding element update to batch:', updatedElement.id);
+        addToBatch({
           type: 'update',
           page: currentPage,
           element: updatedElement,
@@ -429,6 +487,7 @@ export const WhiteboardProvider = ({ children }) => {
         undo,
         redo,
         saveToHistory,
+        flushBatch,
         isDrawing,
         setIsDrawing,
         selectedElement,
