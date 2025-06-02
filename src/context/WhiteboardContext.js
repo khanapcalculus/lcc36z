@@ -279,6 +279,12 @@ export const WhiteboardProvider = ({ children }) => {
   const addElement = (element) => {
     console.log('WhiteboardContext: addElement called with:', element);
     
+    // Generate ID if not provided - do this outside setPages so we can return it
+    const newElement = {
+      ...element,
+      id: element.id || `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    };
+    
     setPages(prevPages => {
       const updatedPages = { ...prevPages };
       
@@ -287,55 +293,49 @@ export const WhiteboardProvider = ({ children }) => {
         updatedPages[currentPage] = [];
       }
       
-      // Generate ID if not provided
-      const newElement = {
-        ...element,
-        id: element.id || `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      };
-      
       // Add element to current page
       updatedPages[currentPage] = [...updatedPages[currentPage], newElement];
       
       console.log('WhiteboardContext: Element added to page', currentPage, 'total elements:', updatedPages[currentPage].length);
       
-      // Emit to socket (immediate for add operations)
-      if (socket.current && socket.current.connected) {
-        const messageData = {
-          type: 'add',
-          page: currentPage,
-          element: newElement,
-          userId: userId.current
-        };
-        
-        // Calculate message size
-        const messageSize = JSON.stringify(messageData).length;
-        const messageSizeKB = Math.round(messageSize / 1024);
-        
-        console.log('WhiteboardContext: Emitting element-update to socket');
-        console.log('WhiteboardContext: Socket connected?', socket.current.connected);
-        console.log('WhiteboardContext: Message size:', messageSizeKB, 'KB');
-        
-        // Warn if message is very large
-        if (messageSizeKB > 500) {
-          console.warn('⚠️ Large socket message:', messageSizeKB, 'KB - may fail to transmit');
-        }
-        
-        console.log('WhiteboardContext: Emitting data:', {
-          type: messageData.type,
-          page: messageData.page,
-          elementType: messageData.element.type,
-          elementId: messageData.element.id,
-          messageSize: messageSizeKB + ' KB'
-        });
-        
-        socket.current.emit('element-update', messageData);
-        console.log('WhiteboardContext: Element-update emitted successfully');
-      } else {
-        console.log('WhiteboardContext: Socket not connected - working in offline mode');
-      }
-      
       return updatedPages;
     });
+    
+    // Emit to socket (immediate for add operations)
+    if (socket.current && socket.current.connected) {
+      const messageData = {
+        type: 'add',
+        page: currentPage,
+        element: newElement,
+        userId: userId.current
+      };
+      
+      // Calculate message size
+      const messageSize = JSON.stringify(messageData).length;
+      const messageSizeKB = Math.round(messageSize / 1024);
+      
+      console.log('WhiteboardContext: Emitting element-update to socket');
+      console.log('WhiteboardContext: Socket connected?', socket.current.connected);
+      console.log('WhiteboardContext: Message size:', messageSizeKB, 'KB');
+      
+      // Warn if message is very large
+      if (messageSizeKB > 500) {
+        console.warn('⚠️ Large socket message:', messageSizeKB, 'KB - may fail to transmit');
+      }
+      
+      console.log('WhiteboardContext: Emitting data:', {
+        type: messageData.type,
+        page: messageData.page,
+        elementType: messageData.element.type,
+        elementId: messageData.element.id,
+        messageSize: messageSizeKB + ' KB'
+      });
+      
+      socket.current.emit('element-update', messageData);
+      console.log('WhiteboardContext: Element-update emitted successfully');
+    } else {
+      console.log('WhiteboardContext: Socket not connected - working in offline mode');
+    }
     
     // Return the new element with ID
     return newElement;
