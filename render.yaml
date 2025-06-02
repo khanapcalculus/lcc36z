@@ -8,24 +8,24 @@ services:
     staticPublishPath: ./build
     envVars:
       - key: REACT_APP_API_URL
-        value: http://localhost:5000
+        value: https://lcc360-whiteboard-backend.onrender.com
     autoDeploy: true
 
-  # Backend web service (commented out for frontend-first deployment)
-  # - type: web
-  #   name: lcc360-whiteboard-backend
-  #   env: node
-  #   plan: free
-  #   repo: https://github.com/khanapcalculus/lcc36z
-  #   branch: main
-  #   buildCommand: npm install && npm run build
-  #   startCommand: npm start
-  #   envVars:
-  #     - key: NODE_ENV
-  #       value: production
-  #     - key: CLIENT_URL
-  #       sync: false
-  #     - key: PORT
-  #       value: 10000
-  #   healthCheckPath: /
-  #   autoDeploy: true 
+  # Backend web service
+  - type: web
+    name: lcc360-whiteboard-backend
+    env: node
+    plan: free
+    repo: https://github.com/khanapcalculus/lcc36z
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_URL
+        value: https://hexenion-lcc-9r7y.onrender.com
+      - key: PORT
+        value: 10000
+    healthCheckPath: /api/health
+    autoDeploy: true 
