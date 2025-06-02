@@ -28,9 +28,26 @@ class WhiteboardService {
     }
   }
 
-  // Save entire whiteboard state
+  // Retry function for handling version conflicts
+  async retryOperation(operation, maxRetries = 3) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        if (error.name === 'VersionError' && attempt < maxRetries) {
+          console.log(`⚠️ Version conflict, retrying... (attempt ${attempt}/${maxRetries})`);
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 50 * attempt));
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
+
+  // Save entire whiteboard state with retry logic
   async saveWhiteboard(pages, currentPage) {
-    try {
+    return this.retryOperation(async () => {
       console.log('💾 Saving whiteboard state...');
       
       // Convert pages object to array format for MongoDB
@@ -47,119 +64,170 @@ class WhiteboardService {
       console.log('✅ Whiteboard saved successfully');
       
       return whiteboard;
-    } catch (error) {
-      console.error('❌ Error saving whiteboard:', error);
-      throw error;
-    }
+    });
   }
 
-  // Add element to specific page
+  // Add element using atomic operation
   async addElement(pageNumber, element) {
     try {
       console.log(`📝 Adding element to page ${pageNumber}:`, element.type);
       
-      const whiteboard = await this.getWhiteboard();
-      
-      // Find or create the page
-      let page = whiteboard.pages.find(p => p.pageNumber === pageNumber);
-      if (!page) {
-        page = { pageNumber, elements: [] };
-        whiteboard.pages.push(page);
-      }
-      
-      // Add element if it doesn't already exist
-      const elementExists = page.elements.some(el => el.id === element.id);
-      if (!elementExists) {
-        page.elements.push(element);
-        await whiteboard.save();
+      // Use atomic operation to avoid version conflicts
+      const result = await Whiteboard.findOneAndUpdate(
+        { 
+          whiteboardId: this.WHITEBOARD_ID,
+          'pages.pageNumber': pageNumber,
+          'pages.elements.id': { $ne: element.id } // Only add if element doesn't exist
+        },
+        { 
+          $push: { 'pages.$.elements': element },
+          $set: { lastModified: new Date() }
+        },
+        { 
+          new: true,
+          upsert: false
+        }
+      );
+
+      if (result) {
         console.log('✅ Element added to database');
+        return result;
       } else {
-        console.log('⚠️  Element already exists in database');
+        // Page doesn't exist or element already exists, handle manually
+        return this.retryOperation(async () => {
+          const whiteboard = await this.getWhiteboard();
+          
+          // Find or create the page
+          let page = whiteboard.pages.find(p => p.pageNumber === pageNumber);
+          if (!page) {
+            page = { pageNumber, elements: [] };
+            whiteboard.pages.push(page);
+          }
+          
+          // Add element if it doesn't already exist
+          const elementExists = page.elements.some(el => el.id === element.id);
+          if (!elementExists) {
+            page.elements.push(element);
+            await whiteboard.save();
+            console.log('✅ Element added to database (fallback)');
+          } else {
+            console.log('⚠️ Element already exists in database');
+          }
+          
+          return whiteboard;
+        });
       }
-      
-      return whiteboard;
     } catch (error) {
       console.error('❌ Error adding element:', error);
-      throw error;
+      // Don't throw error, just log it to prevent breaking the app
+      return null;
     }
   }
 
-  // Update element on specific page
+  // Update element using atomic operation
   async updateElement(pageNumber, element) {
     try {
       console.log(`🔄 Updating element on page ${pageNumber}:`, element.id);
       
-      const whiteboard = await this.getWhiteboard();
-      
-      // Find the page
-      const page = whiteboard.pages.find(p => p.pageNumber === pageNumber);
-      if (!page) {
-        console.log('⚠️  Page not found for update');
-        return whiteboard;
-      }
-      
-      // Update the element
-      const elementIndex = page.elements.findIndex(el => el.id === element.id);
-      if (elementIndex !== -1) {
-        page.elements[elementIndex] = element;
-        await whiteboard.save();
+      // Use atomic operation to avoid version conflicts
+      const result = await Whiteboard.findOneAndUpdate(
+        { 
+          whiteboardId: this.WHITEBOARD_ID,
+          'pages.pageNumber': pageNumber,
+          'pages.elements.id': element.id
+        },
+        { 
+          $set: { 
+            'pages.$[page].elements.$[elem]': element,
+            lastModified: new Date()
+          }
+        },
+        { 
+          arrayFilters: [
+            { 'page.pageNumber': pageNumber },
+            { 'elem.id': element.id }
+          ],
+          new: true
+        }
+      );
+
+      if (result) {
         console.log('✅ Element updated in database');
+        return result;
       } else {
-        console.log('⚠️  Element not found for update');
+        console.log('⚠️ Element not found for update');
+        return await this.getWhiteboard();
       }
-      
-      return whiteboard;
     } catch (error) {
       console.error('❌ Error updating element:', error);
-      throw error;
+      // Don't throw error, just log it to prevent breaking the app
+      return null;
     }
   }
 
-  // Delete element from specific page
+  // Delete element using atomic operation
   async deleteElement(pageNumber, elementId) {
     try {
-      console.log(`🗑️  Deleting element from page ${pageNumber}:`, elementId);
+      console.log(`🗑️ Deleting element from page ${pageNumber}:`, elementId);
       
-      const whiteboard = await this.getWhiteboard();
-      
-      // Find the page
-      const page = whiteboard.pages.find(p => p.pageNumber === pageNumber);
-      if (!page) {
-        console.log('⚠️  Page not found for delete');
-        return whiteboard;
+      // Use atomic operation to avoid version conflicts
+      const result = await Whiteboard.findOneAndUpdate(
+        { 
+          whiteboardId: this.WHITEBOARD_ID,
+          'pages.pageNumber': pageNumber
+        },
+        { 
+          $pull: { 'pages.$.elements': { id: elementId } },
+          $set: { lastModified: new Date() }
+        },
+        { new: true }
+      );
+
+      if (result) {
+        console.log('✅ Element deleted from database');
+        return result;
+      } else {
+        console.log('⚠️ Page not found for delete');
+        return await this.getWhiteboard();
       }
-      
-      // Remove the element
-      page.elements = page.elements.filter(el => el.id !== elementId);
-      await whiteboard.save();
-      console.log('✅ Element deleted from database');
-      
-      return whiteboard;
     } catch (error) {
       console.error('❌ Error deleting element:', error);
-      throw error;
+      // Don't throw error, just log it to prevent breaking the app
+      return null;
     }
   }
 
-  // Clear specific page
+  // Clear specific page using atomic operation
   async clearPage(pageNumber) {
     try {
       console.log(`🧹 Clearing page ${pageNumber}`);
       
-      const whiteboard = await this.getWhiteboard();
-      
-      // Find the page
-      const page = whiteboard.pages.find(p => p.pageNumber === pageNumber);
-      if (page) {
-        page.elements = [];
-        await whiteboard.save();
+      // Use atomic operation to avoid version conflicts
+      const result = await Whiteboard.findOneAndUpdate(
+        { 
+          whiteboardId: this.WHITEBOARD_ID,
+          'pages.pageNumber': pageNumber
+        },
+        { 
+          $set: { 
+            'pages.$.elements': [],
+            lastModified: new Date()
+          }
+        },
+        { new: true }
+      );
+
+      if (result) {
         console.log('✅ Page cleared in database');
+        return result;
+      } else {
+        console.log('⚠️ Page not found for clear');
+        return await this.getWhiteboard();
       }
-      
-      return whiteboard;
     } catch (error) {
       console.error('❌ Error clearing page:', error);
-      throw error;
+      // Don't throw error, just log it to prevent breaking the app
+      return null;
     }
   }
 
@@ -177,49 +245,40 @@ class WhiteboardService {
     };
   }
 
-  // Batch update multiple elements (for performance optimization)
+  // Optimized batch update using atomic operations
   async batchUpdate(updates) {
     try {
       console.log(`🔄 Processing batch update with ${updates.length} operations`);
       
-      const whiteboard = await this.getWhiteboard();
-      
-      for (const update of updates) {
-        const page = whiteboard.pages.find(p => p.pageNumber === update.page) || 
-                    (() => {
-                      const newPage = { pageNumber: update.page, elements: [] };
-                      whiteboard.pages.push(newPage);
-                      return newPage;
-                    })();
-        
-        switch (update.type) {
-          case 'add':
-            if (!page.elements.some(el => el.id === update.element.id)) {
-              page.elements.push(update.element);
-            }
-            break;
-          case 'update':
-            const elementIndex = page.elements.findIndex(el => el.id === update.element.id);
-            if (elementIndex !== -1) {
-              page.elements[elementIndex] = update.element;
-            }
-            break;
-          case 'delete':
-            page.elements = page.elements.filter(el => el.id !== update.elementId);
-            break;
-          case 'clear':
-            page.elements = [];
-            break;
-        }
+      // Group updates by type for better performance
+      const addUpdates = updates.filter(u => u.type === 'add');
+      const updateUpdates = updates.filter(u => u.type === 'update');
+      const deleteUpdates = updates.filter(u => u.type === 'delete');
+      const clearUpdates = updates.filter(u => u.type === 'clear');
+
+      // Process each type of update
+      for (const update of addUpdates) {
+        await this.addElement(update.page, update.element);
+      }
+
+      for (const update of updateUpdates) {
+        await this.updateElement(update.page, update.element);
+      }
+
+      for (const update of deleteUpdates) {
+        await this.deleteElement(update.page, update.elementId);
+      }
+
+      for (const update of clearUpdates) {
+        await this.clearPage(update.page);
       }
       
-      await whiteboard.save();
       console.log('✅ Batch update completed');
-      
-      return whiteboard;
+      return await this.getWhiteboard();
     } catch (error) {
       console.error('❌ Error in batch update:', error);
-      throw error;
+      // Don't throw error, just log it to prevent breaking the app
+      return null;
     }
   }
 }

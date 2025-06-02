@@ -204,83 +204,69 @@ io.on('connection', async (socket) => {
   // Broadcast to others that a new user joined
   socket.broadcast.emit('user-joined', { userId, totalUsers: activeUsers.size });
 
-  // Handle element updates (individual)
+  // Handle element updates (individual) - optimized for performance
   socket.on('element-update', async (data) => {
-    // Calculate message size
-    const messageSize = JSON.stringify(data).length;
-    const messageSizeKB = Math.round(messageSize / 1024);
-    
-    console.log(`Received element-update: ${data.type} ${data.userId} (${messageSizeKB} KB)`);
-    
-    // Warn about large messages
-    if (messageSizeKB > 500) {
-      console.warn(`⚠️ Large message received: ${messageSizeKB} KB - type: ${data.element?.type}`);
-    }
-    
-    // Log image-specific info
-    if (data.element?.type === 'image') {
-      const imageSizeKB = Math.round(data.element.src?.length / 1024);
-      console.log(`🖼️ Image element: ${data.element.id} - ${imageSizeKB} KB`);
-    }
-    
     const page = data.page || 1;
     
-    // Save to database
-    try {
-      if (data.type === 'add') {
-        await whiteboardService.addElement(page, data.element);
-      } else if (data.type === 'update') {
-        await whiteboardService.updateElement(page, data.element);
-      } else if (data.type === 'delete') {
-        await whiteboardService.deleteElement(page, data.elementId);
-      } else if (data.type === 'clear') {
-        await whiteboardService.clearPage(page);
-      }
-    } catch (error) {
-      console.error('❌ Error saving element update to database:', error);
-    }
-    
-    // Broadcast to all other clients
+    // Broadcast to all other clients immediately for real-time feel
     socket.broadcast.emit('element-update', data);
+    
+    // Save to database asynchronously (don't block real-time updates)
+    setImmediate(async () => {
+      try {
+        if (data.type === 'add') {
+          await whiteboardService.addElement(page, data.element);
+        } else if (data.type === 'update') {
+          await whiteboardService.updateElement(page, data.element);
+        } else if (data.type === 'delete') {
+          await whiteboardService.deleteElement(page, data.elementId);
+        } else if (data.type === 'clear') {
+          await whiteboardService.clearPage(page);
+        }
+      } catch (error) {
+        // Silently handle database errors to not break real-time experience
+        console.error('❌ Database save error (non-blocking):', error.message);
+      }
+    });
   });
 
-  // Handle batch element updates (optimized)
+  // Handle batch element updates (optimized) - prioritize real-time over database
   socket.on('element-batch-update', async (data) => {
-    console.log(`Received element-batch-update: ${data.updates.length} updates from user: ${data.userId}`);
-    
-    // Save batch updates to database
-    try {
-      await whiteboardService.batchUpdate(data.updates);
-    } catch (error) {
-      console.error('❌ Error saving batch updates to database:', error);
-    }
-    
-    // Broadcast batch update to all other clients
+    // Broadcast batch update to all other clients immediately
     socket.broadcast.emit('element-batch-update', data);
+    
+    // Save batch updates to database asynchronously
+    setImmediate(async () => {
+      try {
+        await whiteboardService.batchUpdate(data.updates);
+      } catch (error) {
+        // Silently handle database errors to not break real-time experience
+        console.error('❌ Batch database save error (non-blocking):', error.message);
+      }
+    });
   });
 
-  // Handle page changes
+  // Handle page changes - no database save needed for page changes
   socket.on('page-change', (data) => {
-    console.log(`Received page-change from user: ${data.userId}`);
-    
     // Broadcast page change to all other clients
     socket.broadcast.emit('page-change', data);
   });
 
-  // Handle clear page
+  // Handle clear page - optimized
   socket.on('clear-page', async (data) => {
-    console.log(`Received clear-page from user: ${data.userId}`);
     const page = data.page || 1;
     
-    // Clear page in database
-    try {
-      await whiteboardService.clearPage(page);
-    } catch (error) {
-      console.error('❌ Error clearing page in database:', error);
-    }
-    
-    // Broadcast clear to all other clients
+    // Broadcast clear to all other clients immediately
     socket.broadcast.emit('clear-page', data);
+    
+    // Clear page in database asynchronously
+    setImmediate(async () => {
+      try {
+        await whiteboardService.clearPage(page);
+      } catch (error) {
+        console.error('❌ Clear page database error (non-blocking):', error.message);
+      }
+    });
   });
 
   // Handle session-specific events
