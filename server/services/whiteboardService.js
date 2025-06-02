@@ -224,4 +224,4 @@ class WhiteboardService {
   }
 }
 
-module.exports = new WhiteboardService(); 
+module.exports = WhiteboardService; 
