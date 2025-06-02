@@ -1,5 +1,5 @@
 services:
-  # Frontend static site
+  # Frontend static site - Updated for backend connection
   - type: static
     name: lcc360-whiteboard-frontend
     repo: https://github.com/khanapcalculus/lcc36z
