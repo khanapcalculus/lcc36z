@@ -1,19 +1,31 @@
 services:
-  # Backend web service
-  - type: web
-    name: lcc360-whiteboard-backend
-    env: node
-    plan: free
+  # Frontend static site
+  - type: static
+    name: lcc360-whiteboard-frontend
     repo: https://github.com/khanapcalculus/lcc36z
     branch: main
     buildCommand: npm install && npm run build
-    startCommand: npm start
+    staticPublishPath: ./build
     envVars:
-      - key: NODE_ENV
-        value: production
-      - key: CLIENT_URL
-        sync: false
-      - key: PORT
-        value: 10000
-    healthCheckPath: /
-    autoDeploy: true 
+      - key: REACT_APP_API_URL
+        value: http://localhost:5000
+    autoDeploy: true
+
+  # Backend web service (commented out for frontend-first deployment)
+  # - type: web
+  #   name: lcc360-whiteboard-backend
+  #   env: node
+  #   plan: free
+  #   repo: https://github.com/khanapcalculus/lcc36z
+  #   branch: main
+  #   buildCommand: npm install && npm run build
+  #   startCommand: npm start
+  #   envVars:
+  #     - key: NODE_ENV
+  #       value: production
+  #     - key: CLIENT_URL
+  #       sync: false
+  #     - key: PORT
+  #       value: 10000
+  #   healthCheckPath: /
+  #   autoDeploy: true 

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { getSocket } from '../utils/socket';
+import { getSocket } from '../services/socket';
 
 const WhiteboardContext = createContext();
 
@@ -296,7 +296,7 @@ export const WhiteboardProvider = ({ children }) => {
       console.log('WhiteboardContext: Element added to page', currentPage, 'total elements:', updatedPages[currentPage].length);
       
       // Emit to socket (immediate for add operations)
-      if (socket.current) {
+      if (socket.current && socket.current.connected) {
         const messageData = {
           type: 'add',
           page: currentPage,
@@ -328,7 +328,7 @@ export const WhiteboardProvider = ({ children }) => {
         socket.current.emit('element-update', messageData);
         console.log('WhiteboardContext: Element-update emitted successfully');
       } else {
-        console.error('WhiteboardContext: Socket not available for emit');
+        console.log('WhiteboardContext: Socket not connected - working in offline mode');
       }
       
       return updatedPages;
@@ -393,12 +393,16 @@ export const WhiteboardProvider = ({ children }) => {
       setHistoryIndex(newHistory.length - 1);
       
       // Emit to socket
-      socket.current.emit('element-update', {
-        type: 'delete',
-        page: currentPage,
-        elementId,
-        userId: userId.current
-      });
+      if (socket.current && socket.current.connected) {
+        socket.current.emit('element-update', {
+          type: 'delete',
+          page: currentPage,
+          elementId,
+          userId: userId.current
+        });
+      } else {
+        console.log('WhiteboardContext: Socket not connected - delete operation saved locally');
+      }
       
       return updatedPages;
     });
@@ -418,11 +422,15 @@ export const WhiteboardProvider = ({ children }) => {
       setHistoryIndex(newHistory.length - 1);
       
       // Emit to socket
-      socket.current.emit('element-update', {
-        type: 'clear',
-        page: currentPage,
-        userId: userId.current
-      });
+      if (socket.current && socket.current.connected) {
+        socket.current.emit('element-update', {
+          type: 'clear',
+          page: currentPage,
+          userId: userId.current
+        });
+      } else {
+        console.log('WhiteboardContext: Socket not connected - clear operation saved locally');
+      }
       
       return updatedPages;
     });
@@ -441,10 +449,14 @@ export const WhiteboardProvider = ({ children }) => {
         const updatedPages = { ...prevPages, [pageNumber]: [] };
         
         // Emit to socket
-        socket.current.emit('page-change', {
-          pages: updatedPages,
-          userId: userId.current
-        });
+        if (socket.current && socket.current.connected) {
+          socket.current.emit('page-change', {
+            pages: updatedPages,
+            userId: userId.current
+          });
+        } else {
+          console.log('WhiteboardContext: Socket not connected - page change saved locally');
+        }
         
         return updatedPages;
       });
@@ -472,10 +484,14 @@ export const WhiteboardProvider = ({ children }) => {
       setCurrentPage(prevState.currentPage);
       
       // Emit to socket
-      socket.current.emit('page-change', {
-        pages: prevState.pages,
-        userId: userId.current
-      });
+      if (socket.current && socket.current.connected) {
+        socket.current.emit('page-change', {
+          pages: prevState.pages,
+          userId: userId.current
+        });
+      } else {
+        console.log('WhiteboardContext: Socket not connected - undo operation saved locally');
+      }
     } else {
       console.log('WhiteboardContext: cannot undo, at beginning of history');
     }
@@ -495,10 +511,14 @@ export const WhiteboardProvider = ({ children }) => {
       setCurrentPage(nextState.currentPage);
       
       // Emit to socket
-      socket.current.emit('page-change', {
-        pages: nextState.pages,
-        userId: userId.current
-      });
+      if (socket.current && socket.current.connected) {
+        socket.current.emit('page-change', {
+          pages: nextState.pages,
+          userId: userId.current
+        });
+      } else {
+        console.log('WhiteboardContext: Socket not connected - redo operation saved locally');
+      }
     } else {
       console.log('WhiteboardContext: cannot redo, at end of history');
     }

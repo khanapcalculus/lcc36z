@@ -7,12 +7,12 @@ export const initSocket = () => {
   const getSocketUrl = () => {
     if (process.env.NODE_ENV === 'production') {
       // In production, use the backend URL from environment variable
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://lcc360z.onrender.com/api';
-      // Remove '/api' from the end to get the base backend URL
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://lcc360-whiteboard-backend.onrender.com';
+      // Remove '/api' from the end if present to get the base backend URL
       return apiUrl.replace('/api', '');
     } else {
       // In development, use local backend
-      return 'http://192.168.31.158:5001';
+      return 'http://localhost:5001';
     }
   };
 
@@ -25,9 +25,9 @@ export const initSocket = () => {
     timeout: 20000,
     forceNew: false,
     reconnection: true,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    maxReconnectionAttempts: 10,
+    reconnectionDelay: 2000,
+    reconnectionDelayMax: 10000,
+    maxReconnectionAttempts: 5,
     randomizationFactor: 0.5,
     upgrade: true,
     rememberUpgrade: true
@@ -38,8 +38,8 @@ export const initSocket = () => {
   });
   
   socket.on('connect_error', (error) => {
-    console.error('❌ Socket connection error:', error);
-    console.error('Error details:', error.message);
+    console.warn('⚠️ Socket connection error (backend may not be deployed yet):', error.message);
+    console.log('💡 Frontend will work in offline mode until backend is available');
   });
   
   socket.on('disconnect', (reason) => {
@@ -55,15 +55,15 @@ export const initSocket = () => {
   });
   
   socket.on('reconnect_attempt', (attemptNumber) => {
-    console.log('🔄 Reconnection attempt:', attemptNumber);
+    console.log('🔄 Reconnection attempt:', attemptNumber, '(backend may not be deployed yet)');
   });
   
   socket.on('reconnect_error', (error) => {
-    console.error('❌ Reconnection error:', error);
+    console.warn('⚠️ Reconnection error:', error.message);
   });
   
   socket.on('reconnect_failed', () => {
-    console.error('❌ Failed to reconnect after maximum attempts');
+    console.warn('⚠️ Failed to reconnect after maximum attempts - working in offline mode');
   });
   
   return socket;
