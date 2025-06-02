@@ -1,17 +1,19 @@
 services:
   # Backend web service
   - type: web
-    name: rtc-whiteboard
+    name: lcc360-whiteboard-backend
     env: node
     plan: free
     repo: https://github.com/khanapcalculus/lcc36z
     branch: main
     buildCommand: npm install && npm run build
-    startCommand: node server/index.js
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: CLIENT_URL
         sync: false
+      - key: PORT
+        value: 10000
     healthCheckPath: /
-    autoDeploy: true
+    autoDeploy: true 

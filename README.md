@@ -1,77 +1,210 @@
-# RTC Whiteboard
+# LCC360 Collaborative Whiteboard
 
-A real-time collaborative whiteboard application built with React, Konva, and Socket.IO.
+A comprehensive real-time collaborative whiteboard application with user management, session scheduling, and multi-role dashboard system built with React, Node.js, MongoDB, and Socket.IO.
 
-## Features
+## 🚀 Features
 
-- ✨ Real-time collaboration
-- 🎨 Multiple drawing tools (pen, eraser, shapes)
-- 📱 Mobile-friendly
-- 🔄 Multi-page support
-- ↩️ Undo/Redo functionality
-- 🖼️ Image upload support
-- 🔧 Transform tool for resizing and rotating
+### Core Whiteboard Features
+- ✨ **Real-time collaboration** with Socket.IO
+- 🎨 **Multiple drawing tools** (pen, eraser, shapes, text)
+- 📱 **Mobile and tablet friendly** interface
+- 🔄 **Multi-page support** with navigation
+- ↩️ **Undo/Redo functionality**
+- 🖼️ **Image upload and manipulation**
+- 🔧 **Transform tools** for resizing and rotating
+- 🎯 **Session-specific whiteboards**
 
-## Local Development
+### User Management System
+- 👥 **Multi-role authentication** (Admin, Teacher, Student)
+- 🔐 **Secure JWT-based authentication**
+- 📊 **Role-based dashboards** with specific features
+- 👤 **User profile management**
+- 🎓 **Grade and subject assignment**
 
-1. Clone the repository:
+### Session Management
+- 📅 **Advanced session scheduling** with timezone support
+- 🔗 **Share links** for easy session access
+- 👨‍🏫 **Teacher-led sessions** with student assignments
+- 📧 **Email invitations** with pre-filled templates
+- 📊 **Session analytics** and participation tracking
+- 🔒 **Public/private sessions** with password protection
+
+### Dashboard Features
+- **Admin Dashboard**: User management, system overview, session oversight
+- **Teacher Dashboard**: Session creation, student management, teaching analytics
+- **Student Dashboard**: Assigned sessions, join functionality, progress tracking
+
+## 🛠️ Technology Stack
+
+- **Frontend**: React 18, React Router, Konva, Socket.IO Client
+- **Backend**: Node.js, Express, Socket.IO, JWT
+- **Database**: MongoDB Atlas with Mongoose
+- **Authentication**: JWT with bcrypt password hashing
+- **Real-time**: WebSocket communication
+- **Deployment**: Render.com (Frontend + Backend)
+
+## 🏃‍♂️ Quick Start
+
+### Prerequisites
+- Node.js 18+ and npm 8+
+- MongoDB Atlas account (or local MongoDB)
+- Git
+
+### Local Development
+
+1. **Clone the repository**:
 ```bash
 git clone https://github.com/khanapcalculus/lccpi.git
 cd lccpi
 ```
 
-2. Install dependencies:
+2. **Install dependencies**:
 ```bash
 npm install
 ```
 
-3. Run in development mode:
+3. **Set up environment variables** (optional for demo):
 ```bash
-npm run dev-full
+# Copy env.example and configure if needed
+cp env.example .env
 ```
 
-This will start both the React development server (port 3000) and the Socket.IO server (port 5000).
+4. **Run in development mode**:
+```bash
+npm run dev
+```
 
-## Deployment on Render.com
+This starts both the React dev server (port 3000) and Node.js server (port 5001).
 
-### Automatic Deployment
+### Demo Accounts
 
-1. Fork this repository to your GitHub account
-2. Connect your GitHub account to Render.com
-3. Create a new Web Service
-4. Select this repository
-5. Use these settings:
-   - **Build Command**: `npm install && npm run build`
-   - **Start Command**: `npm start`
-   - **Environment**: `Node`
-   - **Plan**: Free (or higher)
+The application includes built-in demo accounts:
+- **Admin**: `admin@lcc360.com` / `admin123`
+- **Teacher**: `teacher@lcc360.com` / `teacher123`
+- **Student**: `student@lcc360.com` / `student123`
 
-### Manual Deployment
+## 🚀 Deployment on Render.com
 
-1. Push your code to GitHub
-2. In Render.com dashboard:
-   - Click "New +" → "Web Service"
-   - Connect your GitHub repository
-   - Configure:
-     - Name: `rtc-whiteboard`
-     - Environment: `Node`
-     - Build Command: `npm install && npm run build`
-     - Start Command: `npm start`
-     - Auto-Deploy: Yes
+### Quick Deployment
 
-### Environment Variables
+1. **Fork this repository** to your GitHub account
+2. **Sign up** at [render.com](https://render.com)
+3. **Follow the detailed guide** in [DEPLOYMENT.md](./DEPLOYMENT.md)
 
-Set these environment variables in Render.com:
-- `NODE_ENV`: `production`
-- `CLIENT_URL`: Your Render app URL (e.g., `https://your-app-name.onrender.com`)
+### Deployment Overview
 
-## Technology Stack
+The application deploys as two services:
+- **Backend Service**: Node.js API and Socket.IO server
+- **Frontend Service**: React static site
 
-- **Frontend**: React, Konva, React-Konva
-- **Backend**: Node.js, Express, Socket.IO
-- **Real-time Communication**: WebSockets
-- **Deployment**: Render.com
+### Required Environment Variables
 
-## License
+**Backend**:
+```
+NODE_ENV=production
+PORT=10000
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_secure_jwt_secret
+CLIENT_URL=https://your-frontend-url.onrender.com
+```
 
-MIT License
+**Frontend**:
+```
+REACT_APP_API_URL=https://your-backend-url.onrender.com/api
+```
+
+## 📖 Usage Guide
+
+### For Teachers
+1. **Login** with teacher account
+2. **Create sessions** with student assignments
+3. **Share session links** via email or copy
+4. **Start sessions** and collaborate in real-time
+5. **Monitor student participation** and engagement
+
+### For Students
+1. **Login** with student account
+2. **View assigned sessions** in dashboard
+3. **Join sessions** via shared links
+4. **Collaborate** on the whiteboard
+5. **Track session history** and participation
+
+### For Administrators
+1. **Manage users** (create, edit, delete)
+2. **Oversee all sessions** across the platform
+3. **View system analytics** and usage statistics
+4. **Configure user roles** and permissions
+
+## 🔧 Development
+
+### Project Structure
+```
+lccpi/
+├── src/                    # React frontend
+│   ├── components/         # React components
+│   ├── contexts/          # React contexts
+│   └── utils/             # Utility functions
+├── server/                # Node.js backend
+│   ├── routes/            # API routes
+│   ├── models/            # MongoDB models
+│   ├── middleware/        # Express middleware
+│   └── index.js           # Server entry point
+├── public/                # Static assets
+└── package.json           # Dependencies and scripts
+```
+
+### Available Scripts
+- `npm run dev` - Start development servers
+- `npm run build` - Build for production
+- `npm run server` - Start backend only
+- `npm test` - Run tests
+
+## 🔒 Security Features
+
+- JWT-based authentication with secure tokens
+- Password hashing with bcrypt
+- CORS protection for API endpoints
+- Input validation and sanitization
+- Role-based access control
+- Session-based authorization
+
+## 📊 Database Schema
+
+### User Model
+- Authentication fields (email, password)
+- Role-specific data (grade, subjects)
+- Profile information
+- Activity tracking
+
+### Session Model
+- Scheduling and timezone support
+- Participant management
+- Whiteboard data storage
+- Analytics and engagement tracking
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+- **Documentation**: Check [DEPLOYMENT.md](./DEPLOYMENT.md) for deployment help
+- **Issues**: Report bugs via GitHub Issues
+- **Demo**: Try the live demo with provided demo accounts
+
+## 🎯 Roadmap
+
+- [ ] Video/audio integration
+- [ ] Advanced whiteboard tools
+- [ ] Mobile app development
+- [ ] Integration with LMS platforms
+- [ ] Advanced analytics dashboard
+- [ ] Multi-language support

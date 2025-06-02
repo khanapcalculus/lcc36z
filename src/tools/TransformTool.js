@@ -155,12 +155,18 @@ export default class TransformTool {
         node.height(newHeight);
       }
       
-      console.log('TransformTool: updating element to:', updatedElement);
+      console.log('TransformTool: Updated element:', updatedElement);
+      
       updateElement(updatedElement);
       
-      // Save to history after transformation
+      // Flush batch to ensure transformation is sent immediately
       if (saveToHistory) {
         saveToHistory();
+      }
+      
+      // Flush batch for real-time collaboration
+      if (this.context.flushBatch) {
+        this.context.flushBatch();
       }
     }
   }

@@ -1,0 +1,128 @@
+.loading-spinner-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, 
+    #667eea 0%, 
+    #764ba2 25%, 
+    #f093fb 50%, 
+    #f5576c 75%, 
+    #4facfe 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-spinner-content {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 10px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.loading-spinner {
+  position: relative;
+  margin: 0 auto 20px auto;
+}
+
+.loading-spinner.small {
+  width: 40px;
+  height: 40px;
+}
+
+.loading-spinner.medium {
+  width: 60px;
+  height: 60px;
+}
+
+.loading-spinner.large {
+  width: 80px;
+  height: 80px;
+}
+
+.spinner-ring {
+  position: absolute;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  animation: spin 1.5s linear infinite;
+}
+
+.loading-spinner.small .spinner-ring {
+  width: 40px;
+  height: 40px;
+}
+
+.loading-spinner.medium .spinner-ring {
+  width: 60px;
+  height: 60px;
+}
+
+.loading-spinner.large .spinner-ring {
+  width: 80px;
+  height: 80px;
+}
+
+.spinner-ring:nth-child(1) {
+  border-top-color: #667eea;
+  animation-delay: 0s;
+}
+
+.spinner-ring:nth-child(2) {
+  border-right-color: #764ba2;
+  animation-delay: 0.1s;
+}
+
+.spinner-ring:nth-child(3) {
+  border-bottom-color: #f093fb;
+  animation-delay: 0.2s;
+}
+
+.spinner-ring:nth-child(4) {
+  border-left-color: #4facfe;
+  animation-delay: 0.3s;
+}
+
+.loading-message {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #4a5568;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .loading-spinner-content {
+    padding: 30px;
+    margin: 20px;
+  }
+  
+  .loading-message {
+    font-size: 14px;
+  }
+} 

@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { WhiteboardContext } from '../../context/WhiteboardContext';
 import ImageTool from '../../tools/ImageTool';
 import ColorPalette from '../ColorPalette/ColorPalette.jsx';
@@ -14,11 +14,16 @@ const Toolbar = () => {
     undo, 
     redo, 
     canUndo, 
-    canRedo 
+    canRedo,
+    saveToDatabase,
+    palmRejectionEnabled,
+    setPalmRejectionEnabled
   } = context;
   
   const fileInputRef = useRef(null);
   const toolInstances = useRef({});
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [imageStatus, setImageStatus] = useState('');
   
   useEffect(() => {
     toolInstances.current = {
@@ -30,13 +35,40 @@ const Toolbar = () => {
     fileInputRef.current.click();
   };
   
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const imageToolInstance = toolInstances.current.image;
-      if (imageToolInstance) {
-        imageToolInstance.uploadImage(file);
+      setIsProcessingImage(true);
+      setImageStatus('Processing image...');
+      
+      try {
+        const imageToolInstance = toolInstances.current.image;
+        if (imageToolInstance) {
+          // Check file size and show appropriate message
+          const fileSizeMB = Math.round(file.size / (1024 * 1024) * 10) / 10;
+          
+          if (fileSizeMB > 2) {
+            setImageStatus(`Compressing large image (${fileSizeMB} MB)...`);
+          }
+          
+          await imageToolInstance.uploadImage(file);
+          setImageStatus('Image added successfully!');
+          
+          // Clear status after 2 seconds
+          setTimeout(() => {
+            setImageStatus('');
+            setIsProcessingImage(false);
+          }, 2000);
+        }
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        setImageStatus('Failed to upload image');
+        setTimeout(() => {
+          setImageStatus('');
+          setIsProcessingImage(false);
+        }, 3000);
       }
+      
       // Reset file input
       e.target.value = null;
     }
@@ -114,8 +146,9 @@ const Toolbar = () => {
           className="tool-button"
           onClick={handleImageUpload}
           title="Upload Image"
+          disabled={isProcessingImage}
         >
-          <i className="fas fa-image"></i>
+          <i className={`fas ${isProcessingImage ? 'fa-spinner fa-spin' : 'fa-image'}`}></i>
         </button>
         <input 
           type="file" 
@@ -124,6 +157,13 @@ const Toolbar = () => {
           accept="image/*" 
           onChange={handleFileChange} 
         />
+        
+        {/* Image processing status */}
+        {imageStatus && (
+          <div className="image-status">
+            {imageStatus}
+          </div>
+        )}
       </div>
       
       <div className="tool-group">
@@ -156,6 +196,26 @@ const Toolbar = () => {
           title="Clear Page"
         >
           <i className="fas fa-trash"></i>
+        </button>
+        
+        <button 
+          className="tool-button"
+          onClick={saveToDatabase}
+          title="Save to Database"
+        >
+          <i className="fas fa-save"></i>
+        </button>
+        
+        <button 
+          className={`tool-button ${palmRejectionEnabled ? 'active' : ''}`}
+          onClick={() => setPalmRejectionEnabled(!palmRejectionEnabled)}
+          title={`Palm Rejection: ${palmRejectionEnabled ? 'ON (Very Strict)' : 'OFF'}`}
+          style={{ 
+            backgroundColor: palmRejectionEnabled ? '#4CAF50' : '#f44336',
+            color: 'white'
+          }}
+        >
+          <i className="fas fa-shield-alt"></i>
         </button>
       </div>
     </div>

@@ -19,14 +19,17 @@
 
 .color-button:hover {
   background-color: rgba(240, 240, 240, 0.3);
+  transform: scale(1.05);
 }
 
-.color-indicator {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+.color-dot {
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.color-button:hover .color-dot {
+  transform: scale(1.1);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
 }
 
 .color-grid {

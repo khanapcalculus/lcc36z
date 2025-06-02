@@ -3,9 +3,20 @@ import { io } from 'socket.io-client';
 let socket;
 
 export const initSocket = () => {
-  const serverUrl = process.env.NODE_ENV === 'production' 
-    ? window.location.origin  // Use same origin in production
-    : 'http://192.168.31.158:5000';
+  // Get the backend URL for Socket.IO connection
+  const getSocketUrl = () => {
+    if (process.env.NODE_ENV === 'production') {
+      // In production, use the backend URL from environment variable
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://lcc360z.onrender.com/api';
+      // Remove '/api' from the end to get the base backend URL
+      return apiUrl.replace('/api', '');
+    } else {
+      // In development, use local backend
+      return 'http://192.168.31.158:5001';
+    }
+  };
+
+  const serverUrl = getSocketUrl();
     
   console.log('Initializing socket connection to:', serverUrl);
     
