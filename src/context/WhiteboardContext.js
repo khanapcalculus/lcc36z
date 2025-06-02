@@ -1,61 +1,57 @@
-import React, { createContext, useEffect, useRef, useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import { getSocket } from '../services/socket';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { getSocket } from '../utils/socket';
 
-export const WhiteboardContext = createContext();
+const WhiteboardContext = createContext();
+
+export const useWhiteboard = () => {
+  const context = useContext(WhiteboardContext);
+  if (!context) {
+    throw new Error('useWhiteboard must be used within a WhiteboardProvider');
+  }
+  return context;
+};
 
 export const WhiteboardProvider = ({ children }) => {
   const [tool, setTool] = useState('pen');
   const [color, setColor] = useState('#000000');
-  const [strokeWidth, setStrokeWidth] = useState(5);
-  const [history, setHistory] = useState([{ pages: { 1: [] }, currentPage: 1 }]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [strokeWidth, setStrokeWidth] = useState(2);
   const [pages, setPages] = useState({ 1: [] });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [history, setHistory] = useState([{ pages: { 1: [] }, currentPage: 1 }]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isDrawing, setIsDrawing] = useState(false);
   const [selectedElement, setSelectedElement] = useState(null);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [palmRejectionEnabled, setPalmRejectionEnabled] = useState(true);
-  
-  const socket = useRef(null);
-  const userId = useRef(uuidv4());
-  
-  // Batching optimization
-  const batchQueue = useRef(new Map());
-  const batchTimeout = useRef(null);
-  const BATCH_DELAY = 50; // 50ms batching delay
 
-  // Function to emit batched updates
+  const socket = useRef(null);
+  const userId = useRef(`user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const batchTimeout = useRef(null);
+  const pendingUpdates = useRef([]);
+
+  // Batched socket updates for performance
   const emitBatchedUpdates = () => {
-    if (batchQueue.current.size === 0) return;
-    
-    const updates = Array.from(batchQueue.current.values());
-    console.log('WhiteboardContext: Emitting batched updates:', updates.length, 'updates');
-    
-    if (socket.current && socket.current.connected) {
+    if (pendingUpdates.current.length > 0 && socket.current && socket.current.connected) {
+      console.log('WhiteboardContext: Emitting batch of', pendingUpdates.current.length, 'updates');
       socket.current.emit('element-batch-update', {
-        updates,
-        userId: userId.current
+        updates: pendingUpdates.current,
+        userId: userId.current,
+        page: currentPage
       });
+      pendingUpdates.current = [];
     }
-    
-    batchQueue.current.clear();
     batchTimeout.current = null;
   };
 
-  // Function to add update to batch
   const addToBatch = (updateData) => {
-    // Use element ID as key to ensure only latest update per element is kept
-    const key = updateData.element ? updateData.element.id : `${updateData.type}-${updateData.page}`;
-    batchQueue.current.set(key, updateData);
+    pendingUpdates.current.push(updateData);
     
-    // Clear existing timeout and set new one
     if (batchTimeout.current) {
       clearTimeout(batchTimeout.current);
     }
     
-    batchTimeout.current = setTimeout(emitBatchedUpdates, BATCH_DELAY);
+    batchTimeout.current = setTimeout(emitBatchedUpdates, 100);
   };
 
   // Function to force emit batch immediately (for important operations)
@@ -65,8 +61,6 @@ export const WhiteboardProvider = ({ children }) => {
     }
     emitBatchedUpdates();
   };
-<<<<<<< HEAD
-=======
 
   // Manual save function
   const saveToDatabase = async () => {
@@ -99,24 +93,6 @@ export const WhiteboardProvider = ({ children }) => {
       return false;
     }
   };
-
-  // Auto-save functionality - temporarily disabled
-  /*
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    const autoSaveInterval = setInterval(() => {
-      if (Object.keys(pages).length > 0) {
-        console.log('🔄 Auto-saving whiteboard...');
-        saveToDatabase();
-      }
-    }, 30000); // Auto-save every 30 seconds
-
-    return () => {
-      clearInterval(autoSaveInterval);
-    };
-  }, [pages, currentPage]);
-  */
->>>>>>> 14c4ba4cf46c31447fd0a2dcfd72da50b47eba36
 
   useEffect(() => {
     console.log('WhiteboardContext: Initializing socket connection...');
@@ -151,21 +127,6 @@ export const WhiteboardProvider = ({ children }) => {
       socket.current.on('whiteboard-state', (data) => {
         console.log('WhiteboardContext: Received whiteboard-state from server:', data);
         console.log('WhiteboardContext: Database temporarily disabled - ignoring whiteboard-state');
-        /*
-        if (data.pages && Object.keys(data.pages).length > 0) {
-          console.log('WhiteboardContext: Loading whiteboard data from database');
-          setPages(data.pages);
-          setCurrentPage(data.currentPage || 1);
-          
-          // Initialize history with loaded data
-          setHistory([{ pages: data.pages, currentPage: data.currentPage || 1 }]);
-          setHistoryIndex(0);
-          
-          console.log('✅ WhiteboardContext: Whiteboard data loaded successfully');
-        } else {
-          console.log('WhiteboardContext: No existing whiteboard data found');
-        }
-        */
       });
 
       socket.current.on('element-update', (data) => {
@@ -258,65 +219,55 @@ export const WhiteboardProvider = ({ children }) => {
     if (data.type === 'add') {
       setPages(prevPages => {
         const updatedPages = { ...prevPages };
-        // Ensure the page exists
-        if (!updatedPages[data.page]) {
-          updatedPages[data.page] = [];
+        const targetPage = data.page || currentPage;
+        
+        if (!updatedPages[targetPage]) {
+          updatedPages[targetPage] = [];
         }
-        // Check if element already exists on this page to prevent duplicates
-        const elementExists = updatedPages[data.page].some(el => el.id === data.element.id);
-        if (!elementExists) {
-          updatedPages[data.page] = [...updatedPages[data.page], data.element];
-          console.log('WhiteboardContext: Added element to page', data.page);
-          
-          // Special logging for image elements
-          if (data.element.type === 'image') {
-            console.log('🖼️ Image element added from socket:', {
-              id: data.element.id,
-              src: data.element.src?.substring(0, 50) + '...',
-              dimensions: `${data.element.width}x${data.element.height}`,
-              position: `(${data.element.x}, ${data.element.y})`
-            });
-          }
+        
+        // Check if element already exists to avoid duplicates
+        const existingElement = updatedPages[targetPage].find(el => el.id === data.element.id);
+        if (!existingElement) {
+          updatedPages[targetPage] = [...updatedPages[targetPage], data.element];
+          console.log('WhiteboardContext: Added element from socket:', data.element.id);
         } else {
-          console.log('WhiteboardContext: Element already exists on page', data.page, 'skipping add');
+          console.log('WhiteboardContext: Element already exists, skipping:', data.element.id);
         }
+        
         return updatedPages;
       });
     } else if (data.type === 'update') {
       setPages(prevPages => {
         const updatedPages = { ...prevPages };
-        // Ensure the page exists
-        if (!updatedPages[data.page]) {
-          updatedPages[data.page] = [];
-        }
-        // Only update if element exists on this page
-        const elementIndex = updatedPages[data.page].findIndex(el => el.id === data.element.id);
-        if (elementIndex !== -1) {
-          updatedPages[data.page] = updatedPages[data.page].map(el => 
+        const targetPage = data.page || currentPage;
+        
+        if (updatedPages[targetPage]) {
+          updatedPages[targetPage] = updatedPages[targetPage].map(el => 
             el.id === data.element.id ? data.element : el
           );
-          console.log('WhiteboardContext: Updated element on page', data.page);
-        } else {
-          console.log('WhiteboardContext: Element not found on page', data.page, 'for update');
+          console.log('WhiteboardContext: Updated element from socket:', data.element.id);
         }
+        
         return updatedPages;
       });
     } else if (data.type === 'delete') {
       setPages(prevPages => {
         const updatedPages = { ...prevPages };
-        if (updatedPages[data.page]) {
-          updatedPages[data.page] = updatedPages[data.page].filter(el => el.id !== data.elementId);
-          console.log('WhiteboardContext: Deleted element from page', data.page);
+        const targetPage = data.page || currentPage;
+        
+        if (updatedPages[targetPage]) {
+          updatedPages[targetPage] = updatedPages[targetPage].filter(el => el.id !== data.elementId);
+          console.log('WhiteboardContext: Deleted element from socket:', data.elementId);
         }
+        
         return updatedPages;
       });
     } else if (data.type === 'clear') {
       setPages(prevPages => {
         const updatedPages = { ...prevPages };
-        if (updatedPages[data.page]) {
-          updatedPages[data.page] = [];
-          console.log('WhiteboardContext: Cleared page', data.page);
-        }
+        const targetPage = data.page || currentPage;
+        updatedPages[targetPage] = [];
+        console.log('WhiteboardContext: Cleared page from socket:', targetPage);
         return updatedPages;
       });
     }
@@ -325,31 +276,6 @@ export const WhiteboardProvider = ({ children }) => {
   const addElement = (element) => {
     console.log('WhiteboardContext: addElement called with:', element);
     
-    // Generate unique ID for the element
-    const newElement = {
-      ...element,
-      id: uuidv4()
-    };
-    
-    console.log('WhiteboardContext: Generated element with ID:', newElement.id);
-    
-    // Special logging for image elements
-    if (newElement.type === 'image') {
-      const imageSizeKB = Math.round(newElement.src.length / 1024);
-      console.log('🖼️ Image element being added locally:', {
-        id: newElement.id,
-        src: newElement.src?.substring(0, 50) + '...',
-        dimensions: `${newElement.width}x${newElement.height}`,
-        position: `(${newElement.x}, ${newElement.y})`,
-        dataSize: `${imageSizeKB} KB`
-      });
-      
-      // Warn if image is very large
-      if (imageSizeKB > 1000) {
-        console.warn('⚠️ Large image detected:', imageSizeKB, 'KB - may cause sync issues');
-      }
-    }
-
     setPages(prevPages => {
       const updatedPages = { ...prevPages };
       
@@ -358,22 +284,17 @@ export const WhiteboardProvider = ({ children }) => {
         updatedPages[currentPage] = [];
       }
       
+      // Generate ID if not provided
+      const newElement = {
+        ...element,
+        id: element.id || `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      };
+      
       // Add element to current page
       updatedPages[currentPage] = [...updatedPages[currentPage], newElement];
       
       console.log('WhiteboardContext: Element added to page', currentPage, 'total elements:', updatedPages[currentPage].length);
       
-<<<<<<< HEAD
-      // Add to history
-      const newHistory = [...history.slice(0, historyIndex + 1), {
-        pages: updatedPages,
-        currentPage
-      }];
-      setHistory(newHistory);
-      setHistoryIndex(newHistory.length - 1);
-      
-=======
->>>>>>> 14c4ba4cf46c31447fd0a2dcfd72da50b47eba36
       // Emit to socket (immediate for add operations)
       if (socket.current) {
         const messageData = {
@@ -429,8 +350,6 @@ export const WhiteboardProvider = ({ children }) => {
       );
       
       console.log('WhiteboardContext: updated pages:', updatedPages);
-      
-      // Don't add to history during drawing - only when drawing is complete
       
       // Add to batch instead of immediate emit
       if (socket.current && socket.current.connected) {
@@ -605,10 +524,7 @@ export const WhiteboardProvider = ({ children }) => {
         undo,
         redo,
         saveToHistory,
-<<<<<<< HEAD
-=======
         saveToDatabase,
->>>>>>> 14c4ba4cf46c31447fd0a2dcfd72da50b47eba36
         flushBatch,
         isDrawing,
         setIsDrawing,

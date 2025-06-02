@@ -1,14 +1,6 @@
 import React from 'react';
-<<<<<<< HEAD
-import './App.css';
-import Canvas from './components/Canvas/Canvas.jsx';
-import Logo from './components/Logo/Logo.jsx';
-import PageNavigation from './components/PageNavigation/PageNavigation.jsx';
-import Toolbar from './components/Toolbar/Toolbar.jsx';
-=======
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import { AuthContext, AuthProvider } from './context/AuthContext';
->>>>>>> 14c4ba4cf46c31447fd0a2dcfd72da50b47eba36
 import { WhiteboardProvider } from './context/WhiteboardContext';
 
 // Components
@@ -16,7 +8,7 @@ import Login from './components/Auth/Login';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import LoadingSpinner from './components/Common/LoadingSpinner';
 
-// Dashboard Components (we'll create these)
+// Dashboard Components
 import AdminDashboard from './components/Dashboard/AdminDashboard';
 import StudentDashboard from './components/Dashboard/StudentDashboard';
 import TeacherDashboard from './components/Dashboard/TeacherDashboard';
@@ -24,8 +16,28 @@ import TeacherDashboard from './components/Dashboard/TeacherDashboard';
 // Whiteboard Components
 import Whiteboard from './components/Whiteboard/Whiteboard';
 
+// Simple Whiteboard Components (fallback)
+import Canvas from './components/Canvas/Canvas.jsx';
+import Logo from './components/Logo/Logo.jsx';
+import PageNavigation from './components/PageNavigation/PageNavigation.jsx';
+import Toolbar from './components/Toolbar/Toolbar.jsx';
+
 // CSS
 import './App.css';
+
+// Simple Whiteboard Component (fallback)
+const SimpleWhiteboard = () => {
+  return (
+    <WhiteboardProvider>
+      <div className="App">
+        <Toolbar />
+        <Canvas />
+        <PageNavigation />
+        <Logo />
+      </div>
+    </WhiteboardProvider>
+  );
+};
 
 // Main App Component
 const AppContent = () => {
@@ -38,12 +50,6 @@ const AppContent = () => {
   return (
     <Router>
       <div className="App">
-<<<<<<< HEAD
-        <Toolbar />
-        <Canvas />
-        <PageNavigation />
-        <Logo />
-=======
         <Routes>
           {/* Public Routes */}
           <Route 
@@ -51,6 +57,12 @@ const AppContent = () => {
             element={
               isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
             } 
+          />
+          
+          {/* Simple Whiteboard Route (no auth required) */}
+          <Route 
+            path="/simple" 
+            element={<SimpleWhiteboard />} 
           />
           
           {/* Protected Dashboard Routes */}
@@ -129,9 +141,7 @@ const AppContent = () => {
           {/* Default Routes */}
           <Route 
             path="/" 
-            element={
-              isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
-            } 
+            element={<SimpleWhiteboard />}
           />
           
           {/* Catch all route */}
@@ -140,7 +150,6 @@ const AppContent = () => {
             element={<Navigate to="/" replace />} 
           />
         </Routes>
->>>>>>> 14c4ba4cf46c31447fd0a2dcfd72da50b47eba36
       </div>
     </Router>
   );

@@ -236,15 +236,6 @@ io.on('connection', (socket) => {
     // Broadcast to all other clients
     socket.broadcast.emit('element-update', data);
   });
-<<<<<<< HEAD
-  
-  // Handle batched updates
-  socket.on('element-batch-update', (data) => {
-    console.log('Received element-batch-update:', data.updates.length, 'updates from user:', data.userId);
-    socket.broadcast.emit('element-batch-update', data);
-  });
-  
-=======
 
   // Handle batch element updates (optimized)
   socket.on('element-batch-update', (data) => {
@@ -275,7 +266,6 @@ io.on('connection', (socket) => {
   });
 
   // Handle page changes
->>>>>>> 14c4ba4cf46c31447fd0a2dcfd72da50b47eba36
   socket.on('page-change', (data) => {
     console.log(`Received page-change from user: ${data.userId}`);
     whiteboardState.currentPage = data.page;
