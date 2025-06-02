@@ -3,11 +3,13 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const WhiteboardService = require('./services/whiteboardService');
 
 // Import routes
 const authRoutes = require('./routes/auth');
 const sessionRoutes = require('./routes/sessions');
 const userRoutes = require('./routes/users');
+const whiteboardRoutes = require('./routes/whiteboard');
 
 const app = express();
 const server = http.createServer(app);
@@ -143,6 +145,7 @@ connectDB();
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/whiteboard', whiteboardRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -176,29 +179,33 @@ const io = socketIo(server, {
 
 // Store active users and their data
 const activeUsers = new Map();
-const whiteboardState = {
-  pages: {
-    1: []
-  },
-  currentPage: 1
-};
+const whiteboardService = new WhiteboardService();
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
   console.log('User connected:', socket.id);
   
   // Generate a unique user ID for this session
   const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   activeUsers.set(socket.id, { userId, joinedAt: new Date() });
 
-  // Send current whiteboard state to new user
-  socket.emit('whiteboard-state', whiteboardState);
+  // Send current whiteboard state from database to new user
+  try {
+    const whiteboard = await whiteboardService.getWhiteboard();
+    const whiteboardState = whiteboardService.convertToClientFormat(whiteboard);
+    socket.emit('whiteboard-state', whiteboardState);
+  } catch (error) {
+    console.error('❌ Error loading whiteboard for new user:', error);
+    // Send empty state as fallback
+    socket.emit('whiteboard-state', { pages: { 1: [] }, currentPage: 1 });
+  }
+  
   socket.emit('user-joined', { userId, totalUsers: activeUsers.size });
 
   // Broadcast to others that a new user joined
   socket.broadcast.emit('user-joined', { userId, totalUsers: activeUsers.size });
 
   // Handle element updates (individual)
-  socket.on('element-update', (data) => {
+  socket.on('element-update', async (data) => {
     // Calculate message size
     const messageSize = JSON.stringify(data).length;
     const messageSizeKB = Math.round(messageSize / 1024);
@@ -216,21 +223,21 @@ io.on('connection', (socket) => {
       console.log(`🖼️ Image element: ${data.element.id} - ${imageSizeKB} KB`);
     }
     
-    const page = data.page || whiteboardState.currentPage;
+    const page = data.page || 1;
     
-    if (!whiteboardState.pages[page]) {
-      whiteboardState.pages[page] = [];
-    }
-    
-    if (data.type === 'add') {
-      whiteboardState.pages[page].push(data.element);
-    } else if (data.type === 'update') {
-      const index = whiteboardState.pages[page].findIndex(el => el.id === data.element.id);
-      if (index !== -1) {
-        whiteboardState.pages[page][index] = data.element;
+    // Save to database
+    try {
+      if (data.type === 'add') {
+        await whiteboardService.addElement(page, data.element);
+      } else if (data.type === 'update') {
+        await whiteboardService.updateElement(page, data.element);
+      } else if (data.type === 'delete') {
+        await whiteboardService.deleteElement(page, data.elementId);
+      } else if (data.type === 'clear') {
+        await whiteboardService.clearPage(page);
       }
-    } else if (data.type === 'delete') {
-      whiteboardState.pages[page] = whiteboardState.pages[page].filter(el => el.id !== data.elementId);
+    } catch (error) {
+      console.error('❌ Error saving element update to database:', error);
     }
     
     // Broadcast to all other clients
@@ -238,28 +245,15 @@ io.on('connection', (socket) => {
   });
 
   // Handle batch element updates (optimized)
-  socket.on('element-batch-update', (data) => {
+  socket.on('element-batch-update', async (data) => {
     console.log(`Received element-batch-update: ${data.updates.length} updates from user: ${data.userId}`);
     
-    const page = data.page || whiteboardState.currentPage;
-    
-    if (!whiteboardState.pages[page]) {
-      whiteboardState.pages[page] = [];
+    // Save batch updates to database
+    try {
+      await whiteboardService.batchUpdate(data.updates);
+    } catch (error) {
+      console.error('❌ Error saving batch updates to database:', error);
     }
-    
-    // Process all updates in the batch
-    data.updates.forEach(update => {
-      if (update.type === 'add') {
-        whiteboardState.pages[page].push(update.element);
-      } else if (update.type === 'update') {
-        const index = whiteboardState.pages[page].findIndex(el => el.id === update.element.id);
-        if (index !== -1) {
-          whiteboardState.pages[page][index] = update.element;
-        }
-      } else if (update.type === 'delete') {
-        whiteboardState.pages[page] = whiteboardState.pages[page].filter(el => el.id !== update.elementId);
-      }
-    });
     
     // Broadcast batch update to all other clients
     socket.broadcast.emit('element-batch-update', data);
@@ -268,17 +262,22 @@ io.on('connection', (socket) => {
   // Handle page changes
   socket.on('page-change', (data) => {
     console.log(`Received page-change from user: ${data.userId}`);
-    whiteboardState.currentPage = data.page;
     
     // Broadcast page change to all other clients
     socket.broadcast.emit('page-change', data);
   });
 
   // Handle clear page
-  socket.on('clear-page', (data) => {
+  socket.on('clear-page', async (data) => {
     console.log(`Received clear-page from user: ${data.userId}`);
-    const page = data.page || whiteboardState.currentPage;
-    whiteboardState.pages[page] = [];
+    const page = data.page || 1;
+    
+    // Clear page in database
+    try {
+      await whiteboardService.clearPage(page);
+    } catch (error) {
+      console.error('❌ Error clearing page in database:', error);
+    }
     
     // Broadcast clear to all other clients
     socket.broadcast.emit('clear-page', data);
@@ -342,5 +341,6 @@ server.listen(PORT, () => {
   console.log(`🔐 Authentication routes available at /api/auth`);
   console.log(`📅 Session management routes available at /api/sessions`);
   console.log(`👥 User management routes available at /api/users`);
+  console.log(`💾 Whiteboard persistence routes available at /api/whiteboard`);
   console.log(`🏥 Health check available at /api/health`);
 });

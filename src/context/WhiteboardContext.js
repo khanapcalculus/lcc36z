@@ -68,11 +68,8 @@ export const WhiteboardProvider = ({ children }) => {
   // Manual save function
   const saveToDatabase = async () => {
     try {
-      console.log('💾 Database temporarily disabled');
-      return true;
-      /*
       console.log('💾 Manually saving whiteboard to database...');
-      const response = await fetch('/api/whiteboard/save', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/whiteboard/save`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,18 +81,93 @@ export const WhiteboardProvider = ({ children }) => {
       });
       
       if (response.ok) {
+        const result = await response.json();
         console.log('✅ Whiteboard saved to database successfully');
         return true;
       } else {
         console.error('❌ Failed to save whiteboard to database');
         return false;
       }
-      */
     } catch (error) {
       console.error('❌ Error saving whiteboard to database:', error);
       return false;
     }
   };
+
+  // Auto-save function (lighter weight)
+  const autoSaveToDatabase = async () => {
+    try {
+      console.log('🔄 Auto-saving whiteboard to database...');
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/whiteboard/auto-save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pages,
+          currentPage
+        }),
+      });
+      
+      if (response.ok) {
+        console.log('✅ Whiteboard auto-saved successfully');
+        return true;
+      } else {
+        console.error('❌ Failed to auto-save whiteboard');
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error auto-saving whiteboard:', error);
+      return false;
+    }
+  };
+
+  // Load whiteboard from database
+  const loadFromDatabase = async () => {
+    try {
+      console.log('📖 Loading whiteboard from database...');
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/whiteboard`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          console.log('✅ Whiteboard loaded from database successfully');
+          setPages(result.data.pages);
+          setCurrentPage(result.data.currentPage);
+          
+          // Initialize history with loaded data
+          setHistory([{ pages: result.data.pages, currentPage: result.data.currentPage }]);
+          setHistoryIndex(0);
+          
+          return true;
+        }
+      } else {
+        console.log('⚠️ No saved whiteboard found, starting fresh');
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error loading whiteboard from database:', error);
+      return false;
+    }
+  };
+
+  // Auto-save functionality
+  useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      if (Object.keys(pages).length > 0) {
+        autoSaveToDatabase();
+      }
+    }, 30000); // Auto-save every 30 seconds
+
+    return () => {
+      clearInterval(autoSaveInterval);
+    };
+  }, [pages, currentPage]);
+
+  // Load data on component mount
+  useEffect(() => {
+    loadFromDatabase();
+  }, []);
 
   useEffect(() => {
     console.log('WhiteboardContext: Initializing socket connection...');
@@ -129,7 +201,8 @@ export const WhiteboardProvider = ({ children }) => {
       // Handle initial whiteboard state from server
       socket.current.on('whiteboard-state', (data) => {
         console.log('WhiteboardContext: Received whiteboard-state from server:', data);
-        console.log('WhiteboardContext: Database temporarily disabled - ignoring whiteboard-state');
+        // Load from database instead of using server memory
+        loadFromDatabase();
       });
 
       socket.current.on('element-update', (data) => {

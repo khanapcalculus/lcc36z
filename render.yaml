@@ -27,5 +27,7 @@ services:
         value: https://hexenion-lcc-9r7y.onrender.com
       - key: PORT
         value: 10000
+      - key: MONGODB_URI
+        value: mongodb+srv://khanapcalculus:Thazhath12@cluster0.ipy6r.mongodb.net/lcc360_whiteboard?retryWrites=true&w=majority&appName=Cluster0&authSource=admin
     healthCheckPath: /api/health
     autoDeploy: true 
